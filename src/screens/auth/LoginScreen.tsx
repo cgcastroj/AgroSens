@@ -1,41 +1,11 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet, View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {Animated, Dimensions } from 'react-native';
-import AuthNavigator from '../../navigation/AuthNavigator';
-
-const { width } = Dimensions.get('window');
-const PADDING = 4;
-// 60 es el padding horizontal total (30 de cada lado)
-const TAB_WIDTH = (width - 60 - (PADDING * 2)) / 2;
-
-/** Componentes pequeños y reutilizables */
-const TabSwitcher = ({ activeTab, onChange, navigation }) => (
-  <View style={styles.tabContainer}>
-    {['Iniciar sesión', 'Registrarse'].map((tab) => (
-      <TouchableOpacity
-        key={tab}
-        style={activeTab === tab ? styles.activeTab : styles.inactiveTab}
-        onPress={() => {
-          onChange(tab);
-          if (tab === 'Registrarse') {
-            navigation.navigate('Register'); // llama a la pantalla de registro
-          }
-        }}
-        activeOpacity={0.7}
-      >
-        <Text style={activeTab === tab ? styles.activeTabText : styles.inactiveTabText}>
-          {tab}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-);
-
+import styles from '../../models/AuthStyles';
+import { dbService } from '../../services/dbService';
 
 const InputField = ({ label, placeholder, secure, value, onChange }) => {
   const [secureMode, setSecureMode] = useState(secure);
-
   return (
     <View style={{ marginBottom: 20 }}>
       <Text style={styles.label}>{label}</Text>
@@ -49,11 +19,7 @@ const InputField = ({ label, placeholder, secure, value, onChange }) => {
           onChangeText={onChange}
         />
         {secure && (
-          <TouchableOpacity
-            style={styles.eyeIcon}
-            onPress={() => setSecureMode(!secureMode)}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.eyeIcon} onPress={() => setSecureMode(!secureMode)}>
             <Ionicons name={secureMode ? 'eye-off-outline' : 'eye-outline'} size={22} color="#8E8E93" />
           </TouchableOpacity>
         )}
@@ -62,84 +28,78 @@ const InputField = ({ label, placeholder, secure, value, onChange }) => {
   );
 };
 
-const SocialLoginButtons = () => {
-  return (
+const SocialLoginButtons = ({ onGoogle, onFacebook, onApple, onPhone }) => (
     <View style={styles.socialIconsContainer}>
-      {/* Google desde imagen */}
-      <TouchableOpacity style={styles.iconButton} activeOpacity={0.6}>
-        <Image
-          source={require('../../../assets/ic_google.webp')}
-          style={{ width: 24, height: 24, resizeMode: 'contain' }}
-        />
+      <TouchableOpacity style={styles.iconButton} onPress={onGoogle}>
+        <Image source={require('../../../assets/ic_google.webp')} style={{ width: 24, height: 24, resizeMode: 'contain' }} />
       </TouchableOpacity>
-
-      {/* Facebook desde imagen */}
-      <TouchableOpacity style={styles.iconButton} activeOpacity={0.6}>
-        <Image
-          source={require('../../../assets/ic_facebook.webp')}
-          style={{ width: 24, height: 24, resizeMode: 'contain' }}
-        />
+      <TouchableOpacity style={styles.iconButton} onPress={onFacebook}>
+        <Image source={require('../../../assets/ic_facebook.webp')} style={{ width: 24, height: 24, resizeMode: 'contain' }} />
       </TouchableOpacity>
-
-      {/* Apple desde Ionicons */}
-      <TouchableOpacity style={styles.iconButton} activeOpacity={0.6}>
-        <Ionicons name="logo-apple" size={24} color="#1A1A1A" />
+      <TouchableOpacity style={styles.iconButton} onPress={onApple}>
+        <Ionicons name="logo-apple" size={28} color="#1A1A1A" />
       </TouchableOpacity>
-
-      {/* Celular desde Ionicons */}
-      <TouchableOpacity style={styles.iconButton} activeOpacity={0.6}>
-        <Ionicons name="phone-portrait-outline" size={24} color="#1A1A1A" />
+      <TouchableOpacity style={styles.iconButton} onPress={onPhone}>
+        <Ionicons name="phone-portrait-outline" size={26} color="#1A1A1A" />
       </TouchableOpacity>
     </View>
-  );
-};
+);
 
-/** Pantalla principal */
 export default function LoginScreen({ navigation }) {
-  const [activeTab, setActiveTab] = useState('Iniciar sesión');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image source={require('../../../assets/logo.webp')} style={styles.logoIcon} />
-          <Text style={styles.brandName}>
-            Agro<Text style={styles.brandGreen}>Sens</Text>
-          </Text>
-        </View>
+  // FUNCIÓN DE LOGIN
+  const handleLogin = () => {
+    if (!email || !password) {
+      Alert.alert('Atención', 'Por favor ingresa tu correo y contraseña');
+      return;
+    }
 
-      <TabSwitcher
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        navigation={navigation} // <-- pasamos navigation
+    try {
+      const user = dbService.getUserByEmail(email.toLowerCase().trim());
+
+      if (user && user.password === password) {
+        // LOGIN EXITOSO: Navegamos al Home
+        // Asegúrate de que "Home" coincida con el nombre en tu AppNavigator
+        navigation.replace('Home'); 
+      } else {
+        Alert.alert('Error', 'Correo electrónico o contraseña incorrectos');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Hubo un problema al intentar iniciar sesión');
+    }
+  };
+
+  return (
+    <View style={styles.form}>
+      <InputField 
+        label="Correo electrónico" 
+        placeholder={"ejemplo@gmail.com"} 
+        value={email} 
+        onChange={setEmail} 
+        secure={false} 
+      />
+      <InputField 
+        label="Contraseña" 
+        placeholder={"••••••••"} 
+        value={password} 
+        onChange={setPassword} 
+        secure={true} 
       />
 
-      <View style={styles.form}>
-        <InputField
-          label="Correo electrónico"
-          placeholder=""
-          secure={false}
-          value={email}
-          onChange={setEmail}
-        />
-        <InputField
-          label="Contraseña"
-          placeholder=""
-          secure={true}
-          value={password}
-          onChange={setPassword}
-        />
+      <TouchableOpacity activeOpacity={0.7}>
+        <Text style={styles.forgotPassword}>Olvidé mi contraseña</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.7}>
-          <Text style={styles.forgotPassword}>Olvidé mi contraseña</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.loginButton} activeOpacity={0.85}>
-          <Text style={styles.loginButtonText}>Iniciar sesión</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity 
+        style={styles.loginButton} 
+        activeOpacity={0.85} 
+        onPress={handleLogin}
+      >
+        <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+      </TouchableOpacity>
 
       <View style={styles.socialDivider}>
         <View style={styles.line} />
@@ -147,38 +107,12 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.line} />
       </View>
 
-      <SocialLoginButtons />
+      <SocialLoginButtons 
+        onGoogle={() => console.log('Google')}
+        onFacebook={() => console.log('Facebook')}
+        onApple={() => console.log('Apple')}
+        onPhone={() => console.log('Phone')}
+      />
     </View>
-  </SafeAreaView>
-);
-
+  );
 }
-
-/** Estilos */
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FBFC' },
-  content: { paddingHorizontal: 30, alignItems: 'center' },
-  header: { marginTop: 80, alignItems: 'center' },
-  logoIcon: { width: 60, height: 60, marginBottom: 10 },
-  brandName: { fontSize: 32, fontFamily: 'Inter-Bold', color: '#1A1A1A' },
-  brandGreen: { color: '#27AE60', fontFamily: 'Inter-Bold' },
-  tabContainer: { flexDirection: 'row', backgroundColor: '#E5E5EA', borderRadius: 7, marginTop: 30, padding: 4, width: '100%', height: 42 },
-  activeTab: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 6, paddingVertical: 7, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1 },
-  inactiveTab: { flex: 1, paddingVertical: 7, alignItems: 'center' },
-  activeTabText: { fontFamily: 'Inter-SemiBold', color: '#1A1A1A' },
-  inactiveTabText: { fontFamily: 'Inter-Regular', color: '#6C7278' },
-  form: { width: '100%', marginTop: 30 },
-  label: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#6C7278', marginBottom: 8 },
-  input: { height: 48, borderWidth: 1, borderColor: '#E5E5EA', borderRadius: 10, paddingHorizontal: 15, marginBottom: 0, fontSize: 14, fontFamily: 'Inter-Regular', color: '#1A1A1A' },
-  passwordContainer: { flexDirection: 'row', height: 48, borderWidth: 1, borderColor: '#E5E5EA', borderRadius: 10, paddingHorizontal: 15, alignItems: 'center' },
-  inputPassword: { flex: 1, height: '100%', fontSize: 14, fontFamily: 'Inter-Regular', color: '#1A1A1A' },
-  eyeIcon: { padding: 5, justifyContent: 'center', alignItems: 'center'},
-  forgotPassword: { color: '#27AE60', textAlign: 'right', fontFamily: 'Inter-SemiBold' },
-  loginButton: { backgroundColor: '#27AE60', borderRadius: 12, height: 52, justifyContent: 'center', alignItems: 'center', marginTop: 30 },
-  loginButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Inter-SemiBold' },
-  socialDivider: { flexDirection: 'row', alignItems: 'center', marginTop: 40, width: '100%' },
-  line: { flex: 1, height: 1, backgroundColor: '#E5E5EA' },
-  socialText: { marginHorizontal: 10, color: '#6C7278', fontSize: 14, fontFamily: 'Inter-Regular' },
-  socialIconsContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 30 },
-  iconButton: { width: 65, height: 60, borderWidth: 1, borderColor: '#F2F2F7', borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-});

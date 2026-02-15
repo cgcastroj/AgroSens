@@ -5,8 +5,8 @@ import BottomTabNavigator from './BottomTabNavigator';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AppNavigator() {
-  const { user } = useAuth();
 
+  const { user } = useAuth();
   return (
     <NavigationContainer>
       {user ? <BottomTabNavigator /> : <AuthNavigator />}
