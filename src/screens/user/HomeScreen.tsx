@@ -1,43 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Button, ScrollView, PermissionsAndroid, Platform, Alert } from 'react-native';
 import RNBluetoothClassic from 'react-native-bluetooth-classic';
 
 export default function HomeScreen() {
   const [data, setData] = useState('');
   const [device, setDevice] = useState(null);
 
+  // 🔐 Pedir permisos
+  const requestPermissions = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ]);
+
+      return Object.values(granted).every(
+        (permission) => permission === PermissionsAndroid.RESULTS.GRANTED
+      );
+    }
+    return true;
+  };
+
+  // 🔌 Conectar
   const connect = async () => {
     try {
+      const hasPermissions = await requestPermissions();
+
+      if (!hasPermissions) {
+        Alert.alert('Permisos', 'Debes aceptar los permisos de Bluetooth');
+        return;
+      }
+
       const devices = await RNBluetoothClassic.getBondedDevices();
+      console.log('Dispositivos:', devices);
+
       const agroDevice = devices.find(d => d.name === 'AgroSens_Navolato');
 
       if (!agroDevice) {
-        console.log('No encontrado');
+        Alert.alert('Error', 'Dispositivo no encontrado. Verifica que esté emparejado.');
         return;
       }
 
       const connected = await agroDevice.connect();
-      setDevice(agroDevice);
 
-      console.log('Conectado:', connected);
+      if (!connected) {
+        Alert.alert('Error', 'No se pudo conectar');
+        return;
+      }
+
+      setDevice(agroDevice);
+      console.log('Conectado');
+
       readData(agroDevice);
 
     } catch (error) {
       console.error(error);
+      Alert.alert('Error', 'Fallo al conectar');
     }
   };
 
+  // 📡 Leer datos
   const readData = async (device) => {
-    while (true) {
-      try {
+    try {
+      while (true) {
         const message = await device.read();
+
         if (message) {
           setData(prev => prev + message + '\n');
         }
-      } catch (err) {
-        console.log('Error leyendo', err);
-        break;
       }
+    } catch (err) {
+      console.log('Error leyendo', err);
     }
   };
 
