@@ -3,12 +3,15 @@ import { View, Text, TextInput, TouchableOpacity, Image, Alert } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 import styles from '../../models/AuthStyles';
 import { dbService } from '../../services/dbService';
+import { useAuth } from '../../hooks/useAuth'; // ✅ IMPORTANTE
 
 const InputField = ({ label, placeholder, secure, value, onChange }) => {
   const [secureMode, setSecureMode] = useState(secure);
+
   return (
     <View style={{ marginBottom: 20 }}>
       <Text style={styles.label}>{label}</Text>
+
       <View style={secure ? styles.passwordContainer : null}>
         <TextInput
           style={secure ? styles.inputPassword : styles.input}
@@ -18,9 +21,17 @@ const InputField = ({ label, placeholder, secure, value, onChange }) => {
           value={value}
           onChangeText={onChange}
         />
+
         {secure && (
-          <TouchableOpacity style={styles.eyeIcon} onPress={() => setSecureMode(!secureMode)}>
-            <Ionicons name={secureMode ? 'eye-off-outline' : 'eye-outline'} size={22} color="#8E8E93" />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setSecureMode(!secureMode)}
+          >
+            <Ionicons
+              name={secureMode ? 'eye-off-outline' : 'eye-outline'}
+              size={22}
+              color="#8E8E93"
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -29,27 +40,36 @@ const InputField = ({ label, placeholder, secure, value, onChange }) => {
 };
 
 const SocialLoginButtons = ({ onGoogle, onFacebook, onApple, onPhone }) => (
-    <View style={styles.socialIconsContainer}>
-      <TouchableOpacity style={styles.iconButton} onPress={onGoogle}>
-        <Image source={require('../../../assets/ic_google.webp')} style={{ width: 24, height: 24, resizeMode: 'contain' }} />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.iconButton} onPress={onFacebook}>
-        <Image source={require('../../../assets/ic_facebook.webp')} style={{ width: 24, height: 24, resizeMode: 'contain' }} />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.iconButton} onPress={onApple}>
-        <Ionicons name="logo-apple" size={28} color="#1A1A1A" />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.iconButton} onPress={onPhone}>
-        <Ionicons name="phone-portrait-outline" size={26} color="#1A1A1A" />
-      </TouchableOpacity>
-    </View>
+  <View style={styles.socialIconsContainer}>
+    <TouchableOpacity style={styles.iconButton} onPress={onGoogle}>
+      <Image
+        source={require('../../../assets/ic_google.webp')}
+        style={{ width: 24, height: 24, resizeMode: 'contain' }}
+      />
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.iconButton} onPress={onFacebook}>
+      <Image
+        source={require('../../../assets/ic_facebook.webp')}
+        style={{ width: 24, height: 24, resizeMode: 'contain' }}
+      />
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.iconButton} onPress={onApple}>
+      <Ionicons name="logo-apple" size={28} color="#1A1A1A" />
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.iconButton} onPress={onPhone}>
+      <Ionicons name="phone-portrait-outline" size={26} color="#1A1A1A" />
+    </TouchableOpacity>
+  </View>
 );
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { signIn } = useAuth(); // ✅ usamos el contexto
 
-  // FUNCIÓN DE LOGIN
   const handleLogin = () => {
     if (!email || !password) {
       Alert.alert('Atención', 'Por favor ingresa tu correo y contraseña');
@@ -60,9 +80,7 @@ export default function LoginScreen({ navigation }) {
       const user = dbService.getUserByEmail(email.toLowerCase().trim());
 
       if (user && user.password === password) {
-        // LOGIN EXITOSO: Navegamos al Home
-        // Asegúrate de que "Home" coincida con el nombre en tu AppNavigator
-        navigation.replace('Home'); 
+        signIn(user.email); 
       } else {
         Alert.alert('Error', 'Correo electrónico o contraseña incorrectos');
       }
@@ -76,26 +94,27 @@ export default function LoginScreen({ navigation }) {
     <View style={styles.form}>
       <InputField 
         label="Correo electrónico" 
-        placeholder={"ejemplo@gmail.com"} 
-        value={email} 
-        onChange={setEmail} 
-        secure={false} 
+        placeholder="ejemplo@gmail.com"
+        value={email}
+        onChange={setEmail}
+        secure={false}
       />
+
       <InputField 
-        label="Contraseña" 
-        placeholder={"••••••••"} 
-        value={password} 
-        onChange={setPassword} 
-        secure={true} 
+        label="Contraseña"
+        placeholder="••••••••"
+        value={password}
+        onChange={setPassword}
+        secure={true}
       />
 
       <TouchableOpacity activeOpacity={0.7}>
         <Text style={styles.forgotPassword}>Olvidé mi contraseña</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        style={styles.loginButton} 
-        activeOpacity={0.85} 
+      <TouchableOpacity
+        style={styles.loginButton}
+        activeOpacity={0.85}
         onPress={handleLogin}
       >
         <Text style={styles.loginButtonText}>Iniciar sesión</Text>
